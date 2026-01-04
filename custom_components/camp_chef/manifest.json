@@ -1,0 +1,26 @@
+{
+  "domain": "camp_chef",
+  "name": "Camp Chef",
+  "version": "0.0.0",
+  "documentation": "https://github.com/doggkruse/pycampchef",
+  "requirements": ["git+https://github.com/doggkruse/pycampchef@main"],
+  "codeowners": ["@doggkruse"],
+  "iot_class": "local_push",
+  "icon": "mdi:grill",
+  "config_flow": true,
+  "dependencies": ["bluetooth"],
+  "bluetooth": [
+    {
+      "local_name": "CampChef:*",
+      "connectable": false
+    },
+    {
+      "local_name": "Cabelas:*",
+      "connectable": false
+    },
+    {
+      "local_name": "Kingsford:*",
+      "connectable": false
+    }
+  ]
+}
