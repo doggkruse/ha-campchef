@@ -137,7 +137,14 @@ class CampChefThermostat(CoordinatorEntity[CampChefCoordinator], ClimateEntity):
         if not mode or mode.mode != ModeName.RUN:
             # Ignore set attempts when not in RUN; UI should already hide controls
             return
-        smoke_level = mode.smoke_level if mode and mode.smoke_level is not None else 0
+        smoke_level = mode.smoke_level if mode else None
+        if smoke_level is None:
+            try:
+                smoke_level = (await self.coordinator.client.commands.read_mode()).smoke_level
+            except Exception:
+                return
+        if smoke_level is None:
+            return
         await self.coordinator.client.commands.set_temp_smoke(int(temperature), smoke_level)
         # Optimistically update target temp so UI reflects the change immediately
         if mode is None:
