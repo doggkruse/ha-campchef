@@ -13,7 +13,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from pycampchef.const import VENDOR_CONFIGS, ModeName
-from pycampchef.models import GrillMode
+from pycampchef.models import GrillMode, GrillState
 
 from .const import (
     CONF_ADDRESS,
@@ -120,8 +120,9 @@ class CampChefThermostat(CoordinatorEntity[CampChefCoordinator], ClimateEntity):
                 smoke_level=None,
                 fan_level=None,
             )
-            self.coordinator._data.mode = new_mode
-            self.coordinator.async_set_updated_data(self.coordinator._data)
+            data = self.coordinator.data or GrillState()
+            data.mode = new_mode
+            self.coordinator.async_set_updated_data(data)
             return
 
         if hvac_mode == HVACMode.HEAT and self.target_temperature is not None:
@@ -156,6 +157,7 @@ class CampChefThermostat(CoordinatorEntity[CampChefCoordinator], ClimateEntity):
                 smoke_level=mode.smoke_level if mode.smoke_level is not None else smoke_level,
                 fan_level=mode.fan_level,
             )
-        self.coordinator._data.mode = new_mode
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        data = self.coordinator.data or GrillState()
+        data.mode = new_mode
+        self.coordinator.async_set_updated_data(data)
         await self.coordinator.async_request_refresh()
