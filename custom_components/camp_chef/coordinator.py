@@ -61,9 +61,8 @@ class CampChefCoordinator(DataUpdateCoordinator[GrillState]):
             vendor=self._vendor,
             on_update=self._handle_telemetry,
         )
-
-        # Kick off the first refresh (will connect, read, and schedule polling)
-        await self.async_refresh()
+        # Client is ready. Caller should use async_config_entry_first_refresh()
+        # to guarantee real grill data exists before entity setup.
 
     async def async_stop(self) -> None:
         if self.client is not None:
