@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Optional
 
 from homeassistant.components.climate import (
@@ -8,6 +9,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import UnitOfTemperature
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -33,6 +35,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
 
 
 class CampChefThermostat(CoordinatorEntity[CampChefCoordinator], ClimateEntity):
+    _enable_turn_on_off_backwards_compatibility = False
     _attr_temperature_unit = UnitOfTemperature.FAHRENHEIT
     _attr_native_temperature_unit = UnitOfTemperature.FAHRENHEIT
     _attr_name = "Chamber"
@@ -101,27 +104,25 @@ class CampChefThermostat(CoordinatorEntity[CampChefCoordinator], ClimateEntity):
     @property
     def supported_features(self) -> int:
         if self.hvac_mode == HVACMode.HEAT:
-            return ClimateEntityFeature.TARGET_TEMPERATURE
+            return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.TURN_OFF
         return ClimateEntityFeature(0)
+
+    async def async_turn_off(self) -> None:
+        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         mode = self.coordinator.data.mode if self.coordinator.data else None
         if hvac_mode == HVACMode.OFF:
-            # Setting OFF should drop the grill to standby
+            # Ask the controller to run its shutdown cycle; keep power connected.
             if self.coordinator.client is None:
-                return
+                raise HomeAssistantError("Cannot shut down: grill is not connected")
             try:
-                await self.coordinator.client.commands.set_mode(ModeName.STANDBY)
-            except Exception:
-                return
-            new_mode = GrillMode(
-                mode=ModeName.STANDBY,
-                set_temp_f=None,
-                smoke_level=None,
-                fan_level=None,
-            )
-            data = self.coordinator.data or GrillState()
-            data.mode = new_mode
+                await self.coordinator.client.commands.shutdown()
+                new_mode = await self.coordinator.client.commands.read_mode()
+            except Exception as err:
+                raise HomeAssistantError(f"Could not confirm grill shutdown: {err}") from err
+            # A successful BLE write is not confirmation of a state change.
+            data = replace(self.coordinator.data or GrillState(), mode=new_mode)
             self.coordinator.async_set_updated_data(data)
             return
 

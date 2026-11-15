@@ -80,6 +80,16 @@ Bluetooth discovery will automatically prompt setup when supported grills are de
 
 ---
 
+## Shutdown
+
+OFF requests the controller's standby/shutdown cycle through
+`pycampchef.commands.shutdown()` and reads the mode back before updating HA.
+Connection/write/read errors are surfaced instead of silently reporting success.
+Keep the controller powered for its cooldown cycle; an OFF mode report does not
+mean the fan has finished cooling. This does not add remote ignition.
+
+This requires a pycampchef revision providing `GrillCommandClient.shutdown`.
+
 ## Bluetooth & pairing notes
 
 - Uses Home Assistant’s built-in Bluetooth stack
